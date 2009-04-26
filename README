@@ -1,10 +1,8 @@
 = astrails-form-builder
 
-1. Copy stylesheets/astrails.css to public/stylesheets (TODO: make rake task)
-2. merge css in layout
-   stylesheet_link_tag 'application', 'astrails-form', :cache => "main"
+Run astrails_form_builder generator to install hooks and default css
+
 3. include ActionView::Helpers::AstrailsFormHelper
-4. use astrails_form_for, astrails_fields_for, astrails_form_remote_for instead of original ones
 
 == Copyright
 
