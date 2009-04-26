@@ -6,7 +6,7 @@ class AstrailsFormBuilderGenerator < Rails::Generator::Base
     record do |m|
 
       # CSS
-      m.file("public/stylesheets/astrails_form_builder.css", "stylesheets/astrails_form_builder.css")
+      m.file("stylesheets/astrails_form_builder.css", "public/stylesheets/astrails_form_builder.css")
       m.insert_into "app/views/layouts/application.html.haml", "    stylesheet_link_tag 'astrails_form_builder', :cache => 'main'"
 
       # HELPER

@@ -1,1 +1,1 @@
-system "scripts/generate", "astrails_form_builder"
+system "script/generate", "astrails_form_builder"
