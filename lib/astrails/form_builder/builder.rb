@@ -8,49 +8,72 @@ module Astrails
       include ActionView::Helpers::TextHelper
       include Haml::Helpers
 
-      @@field_keys = [:label, :label_html, :label_class]
+      @@field_keys = [:label, :label_html, :label_class, :note]
 
-      %w/text_field text_area password_field file_field date_select time_select country_select/.each do |name|
+      %w/text_field text_area password_field file_field date_select time_select/.each do |name|
         class_eval <<-END, __FILE__, __LINE__
           def #{name}(method, options = {}, html_options = {})
             clean_field do
-              @template.content_tag(:div, 
-                label_with_error(method, options) + 
-                super(method, options.except(*@@field_keys).merge(:class => :text)) +
-                error_html(method), surround_opts(method))
+              @template.content_tag(:div,
+                label_with_error(method, options) +
+                @template.content_tag(:div,
+                  super(method, options.except(*@@field_keys).reverse_merge(:class => :text))
+                ) + note_html(options[:note]) + error_html(method),
+                surround_opts(method)
+              )
             end
           end
         END
       end
 
-    %w/check_box/.each do |name|
-      class_eval <<-END, __FILE__, __LINE__
+      %w/check_box/.each do |name|
+        class_eval <<-END, __FILE__, __LINE__
         def #{name}(method, options = {}, html_options = {})
           clean_field do
-            @template.content_tag(:div, 
+            @template.content_tag(:div,
               super(method, options.except(*@@field_keys).merge(:class => :checkbox)) +
-              label_with_error(method, options.merge(:label_class => "sameline")) + 
-              error_html(method), surround_opts(method))
+              label_with_error(method, options.merge(:label_class => "sameline")) +
+              note_html(options[:note]) + error_html(method), surround_opts(method))
           end
         end
-      END
-    end
+        END
+      end
 
-    def surround_opts(method)
-      return {} unless has_errors?(method)
-      {:class => "error"}
-    end
+      %w/select country_select/.each do |name|
+        class_eval <<-END, __FILE__, __LINE__
+          def #{name}(method, choices = nil, options = {}, html_options = {})
+            clean_field do
+              @template.content_tag(:div,
+                label_with_error(method, options) +
+                @template.content_tag(:div,
+                super(method, choices, options.except(*@@field_keys).merge(:class => :text), html_options)) +
+                note_html(options[:note]) + error_html(method), surround_opts(method))
+            end
+          end
+        END
+      end
 
-    def label_with_error(method, options)
-      content = options.delete(:label) || options.delete(:label_html) || method.to_s.humanize
-      options[:class] = options.delete(:label_class) || nil
+      def surround_opts(method)
+        return {} unless has_errors?(method)
+        {:class => "error"}
+      end
 
-      options[:for] ||= @object_name ? "#{@object_name}_#{method}" : method
-                 @template.content_tag :label, content, options.merge(:id => "label_#{options[:for]}")
+      def label_with_error(method, options)
+        content = options.delete(:label) || options.delete(:label_html) || method.to_s.humanize
+
+
+        klass = options.delete(:label_class) || nil
+
+        for_ ||= options.delete(:for) || (@object_name ? "#{@object_name}_#{method}" : method)
+        @template.content_tag :label, content, options.reverse_merge(:id => "label_#{for_}", :for => for_, :class => klass)
       end
 
       def error_html(method)
-        has_errors?(method) && @template.content_tag(:em, merge_errors(method)) || ""
+        has_errors?(method) && @template.content_tag(:em, merge_errors(method), :class => "er") || ""
+      end
+
+      def note_html(note)
+        note ? @template.content_tag(:span, note, :class => :note) : ""
       end
 
       def clean_field
@@ -60,7 +83,7 @@ module Astrails
       ensure
         # revert default "fieldWithErrors" wrapper
         ActionView::Base.field_error_proc = field_error_proc if field_error_proc
-      end  
+      end
 
       def merge_errors(method)
         errors = has_errors?(method)
@@ -69,7 +92,7 @@ module Astrails
       end
 
       def has_errors?(method)
-        return false unless @object.respond_to?(:errors) 
+        return false unless @object.respond_to?(:errors)
         return @object.errors.on(method) if @object.errors.on(method)
         return has_errors?("base") if :uploaded_data == method
         false
